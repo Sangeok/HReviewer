@@ -55,6 +55,7 @@ export async function fetchUserContribution(token: string, username: string) {
                 weeks {
                     contributionDays {
                         contributionCount
+                        contributionLevel
                         date
                         color
                     }
