@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { RepositoryListSkeleton } from "@/module/repository/components/RepositoryCardSkeleton";
+import { useConnectRepository } from "@/module/repository/hooks/use-connect-repository";
 import { useRepositories } from "@/module/repository/hooks/use-repositories";
 import { Badge, ExternalLink, Search, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -25,6 +26,8 @@ export default function DashboardRepo() {
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [localConnectingId, setLocalConnectingId] = useState<number | null>(null);
+
+  const { mutate: connectRepository } = useConnectRepository();
 
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -62,7 +65,19 @@ export default function DashboardRepo() {
 
   const handleConnect = (repo: Repository) => {
     setLocalConnectingId(repo.id);
-    // connectRepository(repo.id);
+
+    connectRepository(
+      {
+        owner: repo.full_name.split("/")[0],
+        repo: repo.full_name.split("/")[1],
+        githubId: repo.id,
+      },
+      {
+        onSettled: () => {
+          setLocalConnectingId(null);
+        },
+      }
+    );
   };
 
   if (isLoading) {
