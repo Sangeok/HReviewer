@@ -5,7 +5,7 @@ import { requireAuthSession } from "@/lib/server-utils";
 import { createWebhook, getRepositories } from "@/module/github";
 import { inngest } from "@/inngest/client";
 
-export const fetchRepositories = async (page: number = 1, perPage: number = 10) => {
+export const getUserRepositories = async (page: number = 1, perPage: number = 10) => {
   const session = await requireAuthSession();
 
   const githubRepos = await getRepositories(page, perPage);

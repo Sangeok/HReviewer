@@ -59,7 +59,7 @@ export const generateReview = inngest.createFunction(
         Format your response in markdown.`;
 
       const { text } = await generateText({
-        model: google("gemini-2.5-flash"),
+        model: google("gemini-2.5-flash-lite"),
         prompt,
       });
 
@@ -89,6 +89,7 @@ export const generateReview = inngest.createFunction(
           prTitle: title,
           prUrl: `https://github.com/${owner}/${repo}/pull/${prNumber}`,
           review,
+          reviewType: "FULL_REVIEW",
           status: "completed",
         },
       });
