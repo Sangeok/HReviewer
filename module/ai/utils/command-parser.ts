@@ -9,7 +9,5 @@ export function parseCommand(comment: string): PRCommand | null {
     return null;
   }
 
-  return {
-    type: match[1] === "summary" ? "summary" : "review",
-  };
+  return { type: match[1] as "summary" | "review" };
 }
