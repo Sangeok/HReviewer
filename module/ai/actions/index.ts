@@ -84,3 +84,50 @@ export async function reviewPullRequest(owner: string, repo: string, prNumber: n
     }
   }
 }
+
+export async function generatePRSummary(owner: string, repo: string, prNumber: number) {
+  try {
+    const repository = await prisma.repository.findFirst({
+      where: {
+        owner,
+        name: repo,
+      },
+      include: {
+        user: {
+          include: {
+            accounts: {
+              where: {
+                providerId: "github",
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!repository) {
+      throw new Error(`Repository ${owner}/${repo} not found`);
+    }
+
+    const githubAccount = repository.user.accounts[0];
+
+    if (!githubAccount?.accessToken) {
+      throw new Error("Github access token not found");
+    }
+
+    await inngest.send({
+      name: "pr.summary.requested",
+      data: {
+        owner,
+        repo,
+        prNumber,
+        userId: repository.user.id,
+      },
+    });
+
+    return { success: true, message: "Summary Queued" };
+  } catch (error) {
+    console.error("Error queueing PR summary:", error);
+    return { success: false, message: "Error Queueing Summary" };
+  }
+}

@@ -86,6 +86,11 @@ model Repository {
   @@map("repository")
 }
 
+enum ReviewType {
+  SUMMARY
+  FULL_REVIEW
+}
+
 model Review {
   id  String @id @default(cuid())
   repositoryId  String
@@ -94,6 +99,7 @@ model Review {
   prTitle   String
   prUrl     String
   review    String  @db.Text
+  reviewType ReviewType @default(FULL_REVIEW)
   status    String  @default("completed") // completed, failed, pending
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

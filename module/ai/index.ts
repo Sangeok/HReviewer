@@ -6,3 +6,9 @@ export * from "./actions";
 
 // ===== Library Functions =====
 export * from "./lib/rag";
+
+// ===== Types =====
+export * from "./types";
+
+// ===== Utils =====
+export { parseCommand } from "./utils/command-parser";

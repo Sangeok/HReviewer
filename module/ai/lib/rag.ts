@@ -1,6 +1,7 @@
 import { pineconeIndex } from "@/lib/pinecone";
 import { embed } from "ai";
 import { google } from "@ai-sdk/google";
+import type { SearchResult, SearchOptions } from "@/module/ai/types";
 
 export async function generateEmbedding(text: string) {
   const { embedding } = await embed({
@@ -14,6 +15,11 @@ export async function generateEmbedding(text: string) {
 export async function indexCodebase(repoId: string, files: { path: string; content: string }[]) {
   const vectors = [];
 
+  // Iterate over each file and:
+  // 1) build a text payload that includes the file path + file content,
+  // 2) truncate it to 8,000 characters to control embedding limits/cost,
+  // 3) generate an embedding vector and collect a Pinecone upsert record (id/values/metadata).
+  // If embedding fails for a file, log the error and continue with the next file.
   for (const file of files) {
     const content = `File : ${file.path}\n\n${file.content}`;
 
@@ -60,4 +66,32 @@ export async function retrieveContext(query: string, repoId: string, topK: numbe
   });
 
   return results.matches.map((match) => match.metadata?.content as string).filter(Boolean);
+}
+
+export async function searchSimilarCode(
+  query: string,
+  options: SearchOptions
+): Promise<SearchResult[]> {
+  const { topK = 5, namespace } = options;
+
+  // Generate embedding for query
+  const embedding = await generateEmbedding(query);
+
+  // Query Pinecone with namespace
+  const results = await pineconeIndex.namespace(namespace || "").query({
+    vector: embedding,
+    topK,
+    includeMetadata: true,
+  });
+
+  // Return results with metadata
+  return results.matches.map((match) => ({
+    metadata: {
+      file: match.metadata?.path as string,
+      code: match.metadata?.content as string,
+      path: match.metadata?.path as string,
+      repoId: match.metadata?.repoId as string,
+    },
+    score: match.score,
+  }));
 }
