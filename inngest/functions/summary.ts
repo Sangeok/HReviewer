@@ -1,12 +1,10 @@
 import prisma from "@/lib/db";
 import { inngest } from "../client";
 import { getPullRequestDiff, postReviewComment } from "@/module/github/lib/github";
-import { searchSimilarCode } from "@/module/ai/lib/rag";
-import type { SearchResult } from "@/module/ai/types";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { stripFencedCodeBlocks } from "@/module/ai/utils/text-sanitizer";
-import { getLanguageName, isValidLanguageCode, type LanguageCode } from "@/module/settings/constants";
+import { getLanguageName, isValidLanguageCode } from "@/module/settings/constants";
 
 export const generateSummary = inngest.createFunction(
   { id: "generate-summary" },
@@ -32,24 +30,8 @@ export const generateSummary = inngest.createFunction(
       return { ...data, token: account.accessToken };
     });
 
-    // Generate AI summary with RAG context
+    // Generate AI summary
     const summary = await step.run("generate-ai-summary", async () => {
-      const relevantContext = await searchSimilarCode(diff, {
-        topK: 3,
-        namespace: `${owner}/${repo}`,
-      });
-
-      const relatedFiles = Array.from(
-        new Set(
-          relevantContext.map((ctx: SearchResult) => ctx.metadata?.file).filter((file): file is string => Boolean(file))
-        )
-      ).slice(0, 5);
-
-      const contextSection =
-        relatedFiles.length > 0
-          ? `Related codebase signals (for reasoning only; do not quote):\n- ${relatedFiles.join("\n- ")}`
-          : "Related codebase signals: none found in the indexed codebase.";
-
       // Validate language code and generate language instruction
       const langCode = isValidLanguageCode(preferredLanguage) ? preferredLanguage : "en";
       const languageInstruction =
@@ -64,7 +46,7 @@ export const generateSummary = inngest.createFunction(
         Rules:
         - Use ONLY information present in the PR title, description, and diff. Do NOT guess.
         - Do NOT include any fenced code blocks (no triple backticks) in your response.
-        - Do NOT quote code from the diff or codebase context. Mention file paths only when helpful.
+        - Do NOT quote code from the diff. Mention file paths only when helpful.
         - If something is unclear, write "Needs verification" rather than speculating.
         - Keep it short and useful for reviewers. Maximum 300 words.
 
@@ -88,9 +70,7 @@ export const generateSummary = inngest.createFunction(
         Code Changes (diff):
         \`\`\`diff
         ${diff}
-        \`\`\`
-
-        ${contextSection}`;
+        \`\`\``;
 
       const { text } = await generateText({
         model: google("gemini-2.5-flash"),
