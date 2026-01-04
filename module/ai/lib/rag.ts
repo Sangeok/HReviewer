@@ -1,7 +1,6 @@
 import { pineconeIndex } from "@/lib/pinecone";
 import { embed } from "ai";
 import { google } from "@ai-sdk/google";
-import type { SearchResult, SearchOptions } from "@/module/ai/types";
 
 export async function generateEmbedding(text: string) {
   const { embedding } = await embed({
@@ -66,32 +65,4 @@ export async function retrieveContext(query: string, repoId: string, topK: numbe
   });
 
   return results.matches.map((match) => match.metadata?.content as string).filter(Boolean);
-}
-
-export async function searchSimilarCode(
-  query: string,
-  options: SearchOptions
-): Promise<SearchResult[]> {
-  const { topK = 5, namespace } = options;
-
-  // Generate embedding for query
-  const embedding = await generateEmbedding(query);
-
-  // Query Pinecone with namespace
-  const results = await pineconeIndex.namespace(namespace || "").query({
-    vector: embedding,
-    topK,
-    includeMetadata: true,
-  });
-
-  // Return results with metadata
-  return results.matches.map((match) => ({
-    metadata: {
-      file: match.metadata?.path as string,
-      code: match.metadata?.content as string,
-      path: match.metadata?.path as string,
-      repoId: match.metadata?.repoId as string,
-    },
-    score: match.score,
-  }));
 }

@@ -6,9 +6,9 @@ GitHub PR 댓글로 `/hreviewer summary` 명령어를 입력하면 AI가 **코�
 
 **핵심 특징:**
 
-- ✅ RAG 사용 (Pinecone 벡터 검색, topK: 3)
+- ❌ RAG 제거 (불필요한 API 호출 최적화)
 - ✅ 기존 코드베이스와의 연관성 분석
-- ✅ 빠른 실행 (20-25초)
+- ✅ 빠른 실행 (17-20초)
 - ✅ 간결한 포맷 (~200 words)
 
 ---
@@ -31,8 +31,7 @@ generatePRSummary() → Inngest 이벤트 발송
 Inngest: generateSummary()
   ├─ Step 1: fetch-pr-data (PR diff, title, description 조회)
   ├─ Step 2: generate-ai-summary
-  │   ├─ RAG: searchSimilarCode() - Pinecone에서 관련 코드 검색 (topK: 3)
-  │   └─ Gemini로 요약 생성 (코드베이스 컨텍스트 포함)
+  │   └─ Gemini로 요약 생성 (PR diff, title, description만 사용)
   ├─ Step 3: post-comment (GitHub PR에 댓글 게시)
   └─ Step 4: save-summary (DB에 저장)
 ```
@@ -49,13 +48,13 @@ Inngest: generateSummary()
 
 ### Full Review vs Summary 비교
 
-| 항목        | Full Review               | Summary                    |
-| ----------- | ------------------------- | -------------------------- |
-| 트리거      | PR opened/synchronized    | 사용자 댓글 명령어         |
-| RAG Context | 사용 (Pinecone, topK: 10) | 사용 (Pinecone, topK: 3-5) |
-| 프롬프트    | 상세 분석 요청            | 간결한 요약 요청           |
-| 분량        | ~500+ words               | ~200 words                 |
-| 실행 시간   | ~30초                     | ~20-25초                   |
+| 항목        | Full Review               | Summary                  |
+| ----------- | ------------------------- | ------------------------ |
+| 트리거      | PR opened/synchronized    | 사용자 댓글 명령어       |
+| RAG Context | 사용 (Pinecone, topK: 10) | 미사용 (비용 최적화)     |
+| 프롬프트    | 상세 분석 요청            | 간결한 요약 요청         |
+| 분량        | ~500+ words               | ~200 words               |
+| 실행 시간   | ~30초                     | ~17-20초 (RAG 제거로 단축) |
 
 ---
 
@@ -272,7 +271,9 @@ export interface SearchOptions {
 
 ---
 
-### Step 3-2: searchSimilarCode 함수 구현
+### ~~Step 3-2: searchSimilarCode 함수 구현~~
+
+⚠️ **DEPRECATED**: 2026-01-04부터 summary.ts에서 RAG 제거됨
 
 **File:** `module/ai/lib/rag.ts` (기존 파일 수정)
 
@@ -799,9 +800,10 @@ npx prisma generate
 
 | Version | Date       | Changes                                                                  |
 | ------- | ---------- | ------------------------------------------------------------------------ |
+| 1.4     | 2026-01-04 | **BREAKING**: RAG 제거 (summary.ts), 성능 최적화 (17-20초), 비용 절감   |
 | 1.3     | 2026-01-01 | **BREAKING**: Prisma 스키마 수정 추가 (ReviewType enum, reviewType 필드) |
 | 1.2     | 2026-01-01 | Summary 기능에 RAG 추가, topK: 3 사용, 실행시간 20-25초로 업데이트       |
 | 1.1     | 2025-12-31 | 초기 스펙 작성                                                           |
 
-**Document Version:** 1.3
-**Last Updated:** 2026-01-01
+**Document Version:** 1.4
+**Last Updated:** 2026-01-04
